@@ -1,0 +1,2 @@
+ACTION=="add", SUBSYSTEM=="block", KERNEL=="sd[a-z][0-9]*", ENV{ID_FS_USAGE}=="filesystem", RUN+="/usr/local/bin/vyne-usb-mount %k"
+ACTION=="remove", SUBSYSTEM=="block", KERNEL=="sd[a-z][0-9]*", RUN+="/usr/local/bin/vyne-usb-umount %k"

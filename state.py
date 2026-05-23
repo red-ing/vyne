@@ -3,16 +3,35 @@ import os
 import json
 import time
 
-STATE_FILE = "/home/pi/vyne/state.json"
-CONFIG_FILE = "/home/pi/vyne/config.json"
-LOG_FILE   = "/home/pi/vyne/logs/events.log"
+STATE_FILE     = "/home/pi/vyne/state.json"
+CONFIG_FILE    = "/home/pi/vyne/config.json"
+LOG_FILE       = "/home/pi/vyne/logs/events.log"
+HEARTBEAT_FILE = "/home/pi/vyne/logs/heartbeat"
+
+# Koliko sekund brez heartbeata šteje za izgubo elektrike
+POWER_LOST_THRESHOLD = 90
 
 
-def _log(msg):
+def _log(msg, ts=None):
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-    ts = time.strftime("[%Y-%m-%d %H:%M:%S]")
+    if ts is None:
+        ts = time.strftime("[%Y-%m-%d %H:%M:%S]")
     with open(LOG_FILE, "a") as f:
         f.write(f"{ts} {msg}\n")
+
+
+def _write_heartbeat():
+    os.makedirs(os.path.dirname(HEARTBEAT_FILE), exist_ok=True)
+    with open(HEARTBEAT_FILE, "w") as f:
+        f.write(str(time.time()))
+
+
+def _read_heartbeat():
+    try:
+        with open(HEARTBEAT_FILE, "r") as f:
+            return float(f.read().strip())
+    except Exception:
+        return None
 
 
 def load_state():
@@ -52,13 +71,14 @@ def stop_process():
 
 
 def log_interruption():
-    state = load_state()
-    if not state or not state.get("active"):
-        return
-    last_seen = state.get("last_seen", state.get("start_time", time.time()))
-    if time.time() - last_seen > 60:
-        _log("POWER LOST")
-        _log("POWER RESTORED")
+    last_alive = _read_heartbeat()
+    now = time.time()
+    if last_alive and (now - last_alive) > POWER_LOST_THRESHOLD:
+        lost_ts     = time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime(last_alive))
+        restored_ts = time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime(now))
+        _log("POWER LOST", ts=lost_ts)
+        _log("POWER RESTORED", ts=restored_ts)
+    _write_heartbeat()
 
 
 def time_remaining(state):
@@ -84,6 +104,7 @@ def load_config():
 
 
 def update_last_seen():
+    _write_heartbeat()
     state = load_state()
     if state and state.get("active"):
         state["last_seen"] = time.time()

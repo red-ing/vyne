@@ -1,0 +1,16 @@
+[Unit]
+Description=VYNE+ Server
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/vyne
+ExecStart=/usr/bin/python3 /home/pi/vyne/server.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/pi/vyne/logs/server.log
+StandardError=append:/home/pi/vyne/logs/server.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=VYNE+ Display
+After=multi-user.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/vyne
+ExecStart=/usr/bin/python3 /home/pi/vyne/display_main.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/pi/vyne/logs/display.log
+StandardError=append:/home/pi/vyne/logs/display.log
+
+[Install]
+WantedBy=multi-user.target

@@ -220,11 +220,26 @@ def get_mp3_list(directory):
 
 def get_usb_mp3_list():
     result = []
-    if os.path.exists(USB_ROOT):
-        for drive in os.listdir(USB_ROOT):
-            dp = os.path.join(USB_ROOT, drive)
-            if os.path.isdir(dp):
-                result += [(os.path.basename(f), f) for f in glob.glob(dp+"/*.mp3")]
+    seen   = set()
+    for base in ("/media", "/run/media"):
+        if not os.path.exists(base):
+            continue
+        for user in os.listdir(base):
+            user_path = os.path.join(base, user)
+            if not os.path.isdir(user_path):
+                continue
+            for drive in os.listdir(user_path):
+                drive_path = os.path.join(user_path, drive)
+                if not os.path.isdir(drive_path):
+                    continue
+                files = set(
+                    glob.glob(os.path.join(drive_path, "*.mp3")) +
+                    glob.glob(os.path.join(drive_path, "**", "*.mp3"), recursive=True)
+                )
+                for f in sorted(files):
+                    if f not in seen:
+                        seen.add(f)
+                        result.append((os.path.basename(f), f))
     return result
 
 # ============================================================
@@ -313,12 +328,13 @@ def screen_menu(selected):
     draw_header(draw)
     draw_section_title(draw, "")  # brez naslova na menuju
     items = ["Start Aging", "Library", "Events"]
-    ys    = [100, 148, 182]
-    for i, (item, y) in enumerate(zip(items, ys)):
+    # enakomerna porazdelitev med linijo (y=40) in kvadratki (y=210): 170px / 4 = 42.5
+    for i, item in enumerate(items):
+        y_c = 40 + (i + 1) * 170 // 4
         if i == selected:
-            draw_centered(draw, f_menu_lg, item, WINE, y)
+            draw_centered(draw, f_menu_lg, item, WINE, y_c - 13)
         else:
-            draw_centered(draw, f_menu_sm, item, GOLD, y)
+            draw_centered(draw, f_menu_sm, item, GOLD, y_c - 9)
     draw_squares(draw, y=210)
     draw_footer(draw)
     show(img)
@@ -327,17 +343,19 @@ def screen_select_process(selected):
     img, draw = new_canvas()
     draw_header(draw)
     draw_section_title(draw, "SELECT PROCESS")
-    startY = 70
-    rowH2  = 36
+    rowH2  = 42
+    # 4 elementi centrično med y=48 in y=210: startY = 48 + (162 - 3*42) / 2 ≈ 62
+    startY = 62
     for i, pt in enumerate(PROCESS_TYPES):
         y     = startY + i*rowH2
         isSel = i == selected
         fnt   = f_menu_lg if isSel else f_menu_sm
         col   = WINE if isSel else GOLD
         draw_centered(draw, fnt, pt["name"], col, y)
-        draw_centered(draw, f_label, pt["label"], WINE if isSel else LABEL_C, y+18)
+        # label pod imenom: 26px (sel) ali 18px (unsel) + 2px razmak
+        draw_centered(draw, f_label, pt["label"], WINE if isSel else LABEL_C, y + (28 if isSel else 18))
         if i < len(PROCESS_TYPES)-1:
-            draw_divider(draw, y+30, 60, 260)
+            draw_divider(draw, y+38, 60, 260)
     draw_squares(draw, y=210)
     draw_footer(draw)
     show(img)

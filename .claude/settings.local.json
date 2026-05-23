@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(systemctl is-enabled *)"
+      "Bash(systemctl is-enabled *)",
+      "Read(//home/pi/vyne/**)",
+      "Read(//media/**)",
+      "Bash(systemctl status *)"
     ]
   }
 }
